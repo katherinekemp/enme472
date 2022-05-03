@@ -10,8 +10,8 @@ from adafruit_mcp3xxx.analog_in import AnalogIn
 from picamera import PiCamera
 
 ## CAMERA
-camera = PiCamera()
-camera.start_preview()
+#camera = PiCamera()
+#camera.start_preview()
 sleep(5)
 
 ## MOTORS
@@ -61,14 +61,26 @@ spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI) # create the 
 cs = digitalio.DigitalInOut(board.D5) # create the cs (chip select)
 mcp = MCP.MCP3008(spi, cs) # create the mcp object
 chan = AnalogIn(mcp, MCP.P0) # create an analog input channel on pin 0
-NUTRIENT_THRESHOLD = 2.5 # Nutrient constant
+NUTRIENT_THRESHOLD_SEEDLING = 0.66 # Nutrient constant for seedling
+NUTRIENT_THRESHOLD_YOUNG = 0.82 # Nutrient constant for young plants
+NUTRIENT_THRESHOLD_MATURE = 1.02 # Nutrient constant for fully grown plants
 last_nutrient_check = datetime.now().time()
+
+def time_plus(time, timedelta):
+    start = datetime.datetime(
+        2000, 1, 1,
+        hour=time.hour, minute=time.minute, second=time.second)
+    end = start + timedelta
+    return end.time()
 
 ## WATER LEVEL
 GPIO_TRIGGER = 5 # trigger pin
 GPIO_ECHO = 6 # echo pin
 GPIO.setup(GPIO_TRIGGER, GPIO.OUT) #set GPIO direction (IN / OUT)
 GPIO.setup(GPIO_ECHO, GPIO.IN) #set GPIO direction (IN / OUT)
+WATER_LEVEL_LOW = 7 # cm
+WATER_LEVEL_THRESHOLD = 5 # cm
+SONAR_HEIGHT = 21 # cm
 
 def distance():
     # set Trigger to HIGH
@@ -112,19 +124,23 @@ while (1):
     # Measure conductivity
     nutrient_level = chan.voltage
     print('ADC Voltage: ' + str(chan.voltage) + 'V')
-    if ((time - last_nutrient_check > timedelta(minutes=2)) and (nutrient_level < NUTRIENT_THRESHOLD)):
+    if ((time.time() > time_plus(last_nutrient_check, timedelta(minutes=2))) and (nutrient_level < NUTRIENT_THRESHOLD_SEEDLING)):
         n.start(40)
         sleep(1)
         n.stop()
         last_nutrient_check = time
 
     # Get water level
-    water_level = distance()
+    water_level = SONAR_HEIGHT = distance()
     print (f"Measured Distance = {water_level} cm")
-    
+    if water_level < WATER_LEVEL_THRESHOLD:
+        print("CHANGE THE WATER")
+    elif water_level < WATER_LEVEL_LOW:
+        print("WATER LEVEL LOW")
+
     # Capture Image
-    camera.capture('./plants.jpg')
-    camera.stop_preview()
+    #camera.capture('./plants.jpg')
+    #camera.stop_preview()
 
     # Pause
     sleep(1)

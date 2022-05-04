@@ -10,6 +10,7 @@ import adafruit_mcp3xxx.mcp3008 as MCP
 from adafruit_mcp3xxx.analog_in import AnalogIn
 from picamera import PiCamera
 
+# LOCATIONS
 data_folder = "data"
 
 ## MOTORS
@@ -22,48 +23,69 @@ np_in1 = 17 # nutrients direction 1
 np_in2 = 27 # nutrients direction 2
 np_en = 18 # nutrients enable
 
-GPIO.setmode(GPIO.BCM) # Chooses board
-
-# Setup output pins for pumps and relays
-GPIO.setup(mp_in1,GPIO.OUT)
-GPIO.setup(mp_in2,GPIO.OUT)
-GPIO.setup(mp_en,GPIO.OUT)
-GPIO.setup(np_in1,GPIO.OUT)
-GPIO.setup(np_in2,GPIO.OUT)
-GPIO.setup(np_en,GPIO.OUT)
-
-# intialize output pin states
-GPIO.output(mp_in1,GPIO.HIGH)
-GPIO.output(mp_in2,GPIO.LOW)
-GPIO.output(np_in1,GPIO.LOW)
-GPIO.output(np_in2,GPIO.HIGH)
-
-# Run main pump at normal rate
-p=GPIO.PWM(mp_en,500) # freq = 500
-p.start(35) # 35% duty cycle
-
-n = GPIO.PWM(np_en,500)
-
 ## LIGHTS
 light = 22 # Pin for light relay control
 light_flag = False # initialize light state to off
-GPIO.setup(light,GPIO.OUT) # Set pin to output
-GPIO.output(light,GPIO.LOW) # Set pin to low
-
-# Constants
-MIDNIGHT = datetime(1,1,1,23,0,0).time() 
-MORNING = datetime(1,1,1,5,0,0).time()
+MIDNIGHT = datetime(1,1,1,23,0,0).time() # nightimte constant
+MORNING = datetime(1,1,1,5,0,0).time() # morning constant
 
 ## CONDUCTIVITY
-spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI) # create the spi bus
-cs = digitalio.DigitalInOut(board.D5) # create the cs (chip select)
-mcp = MCP.MCP3008(spi, cs) # create the mcp object
-chan = AnalogIn(mcp, MCP.P0) # create an analog input channel on pin 0
 NUTRIENT_THRESHOLD_SEEDLING = 0.66 # Nutrient constant for seedling
 NUTRIENT_THRESHOLD_YOUNG = 0.82 # Nutrient constant for young plants
 NUTRIENT_THRESHOLD_MATURE = 1.02 # Nutrient constant for fully grown plants
 last_nutrient_check = datetime.now().time()
 
+## WATER LEVEL
+GPIO_TRIGGER = 5 # trigger pin
+GPIO_ECHO = 6 # echo pin
+WATER_LEVEL_LOW = 7 # cm
+WATER_LEVEL_THRESHOLD = 5 # cm
+SONAR_HEIGHT = 21 # cm
+water_low_counter = 0
+water_threshold_counter = 0
+
+
+## SET UP
+def set_up():
+    GPIO.setmode(GPIO.BCM) # Chooses board
+
+    # Setup output pins for pumps and relays
+    GPIO.setup(mp_in1,GPIO.OUT)
+    GPIO.setup(mp_in2,GPIO.OUT)
+    GPIO.setup(mp_en,GPIO.OUT)
+    GPIO.setup(np_in1,GPIO.OUT)
+    GPIO.setup(np_in2,GPIO.OUT)
+    GPIO.setup(np_en,GPIO.OUT)
+
+    # intialize output pin states
+    GPIO.output(mp_in1,GPIO.HIGH)
+    GPIO.output(mp_in2,GPIO.LOW)
+    GPIO.output(np_in1,GPIO.LOW)
+    GPIO.output(np_in2,GPIO.HIGH)
+
+    # Run main pump at normal rate
+    p=GPIO.PWM(mp_en,500) # freq = 500
+    p.start(35) # 35% duty cycle
+
+    # set up nutrient pump
+    n = GPIO.PWM(np_en,500)
+
+    ## LIGHTS
+    GPIO.setup(light,GPIO.OUT) # Set pin to output
+    GPIO.output(light,GPIO.LOW) # Set pin to low
+
+    ## CONDUCTIVITY
+    spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI) # create the spi bus
+    cs = digitalio.DigitalInOut(board.D5) # create the cs (chip select)
+    mcp = MCP.MCP3008(spi, cs) # create the mcp object
+    chan = AnalogIn(mcp, MCP.P0) # create an analog input channel on pin 0
+
+    ## WATER LEVEL
+    GPIO.setup(GPIO_TRIGGER, GPIO.OUT) #set GPIO direction (IN / OUT)
+    GPIO.setup(GPIO_ECHO, GPIO.IN) #set GPIO direction (IN / OUT)
+
+
+## ADD TIME
 def time_plus(current_time, timedelta):
     start = datetime(
         2000, 1, 1,
@@ -71,18 +93,10 @@ def time_plus(current_time, timedelta):
     end = start + timedelta
     return end.time()
 
-## WATER LEVEL
-GPIO_TRIGGER = 5 # trigger pin
-GPIO_ECHO = 6 # echo pin
-GPIO.setup(GPIO_TRIGGER, GPIO.OUT) #set GPIO direction (IN / OUT)
-GPIO.setup(GPIO_ECHO, GPIO.IN) #set GPIO direction (IN / OUT)
-WATER_LEVEL_LOW = 7 # cm
-WATER_LEVEL_THRESHOLD = 5 # cm
-SONAR_HEIGHT = 21 # cm
-water_low_counter = 0
-water_threshold_counter = 0
 
 def distance():
+    global GPIO_TRIGGER, GPIO_ECHO
+
     # set Trigger to HIGH
     GPIO.output(GPIO_TRIGGER, True)
  
@@ -111,9 +125,11 @@ def distance():
 
 
 def run_system():
+    global light_flag, MIDNIGHT, MORNING, light, chan
+
     current_time = datetime.now().time() # Get current time
 
-    # Set lights to proper staet
+    ## LIGHTS
     if light_flag == True and (current_time > MIDNIGHT or current_time < MORNING):
         GPIO.output(light,GPIO.LOW)
         light_flag = False
@@ -121,7 +137,7 @@ def run_system():
         GPIO.output(light,GPIO.HIGH)
         light_flag = True
 
-    # Measure conductivity
+    # CONDUCTIVITY
     nutrient_level = chan.voltage
     print('ADC Voltage: ' + str(chan.voltage) + 'V')
 

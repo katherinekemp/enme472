@@ -5,7 +5,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, 
 NavigationToolbar2Tk)
 import sqldb
-#import system
+import hydroponics
 
 # Data
 data_folder = "data"
@@ -47,7 +47,7 @@ lbl03 = Label(root, text=f"Nutrient concentration is {y_nutrient[-1]}%", font=("
 lbl03.place(bordermode=OUTSIDE, anchor='nw', x=50, y=3*screen_height//8, height=screen_height//8-80, width=screen_width//2.5)
 
 # Image
-pathToImage = f"{os.getcwd()}/{data_folder}/flower.jpeg"
+pathToImage = f"{os.getcwd()}/{data_folder}/plant.jpg"
 im = Image.open(pathToImage)
 w, h = im.size
 width = int(.4 * screen_width)
@@ -96,7 +96,7 @@ toolbar2.update()
 toolbar2.place(bordermode=OUTSIDE, anchor='ne', x=screen_width-50, y=screen_height//2-40)
 
 def update_screen():
-    #system.run_system()
+    hydroponics.run_system()
     x_water, y_water, x_nutrient, y_nutrient = update_data()
     root.after(1000, update_screen)
 

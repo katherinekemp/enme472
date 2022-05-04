@@ -8,8 +8,8 @@ def send_text():
     # and set the environment variables. See http://twil.io/secure
     #account_sid = os.getenv('account_sid')
     #auth_token = os.environ.get('auth_token')
-    account_sid = os.environ['TWILIO_ACCOUNT_SID']
-    auth_token = os.environ['TWILIO_AUTH_TOKEN']
+    account_sid = os.environ['ACa78f536eae6f850d9501e8fe2c22794b']
+    auth_token = os.environ['86be2f06eb163703b04f7b7df83451b0']
     client = Client(account_sid, auth_token)
 
     message = client.messages \

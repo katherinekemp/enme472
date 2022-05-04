@@ -12,13 +12,6 @@ from picamera import PiCamera
 
 data_folder = "data"
 
-## CAMERA
-'''
-camera = PiCamera()
-camera.start_preview()
-sleep(5)
-'''
-
 ## MOTORS
 # Pins
 mp_in1 = 24 # Direction control for main pump 
@@ -156,8 +149,8 @@ def run_system():
         water_threshold_counter = 0
         
     # Capture Image
-    #camera.capture(f'./{data_folder}/plants.jpg')
-    #camera.stop_preview()
+    os.system("raspistill -n -o ./data/plant.jpg")
+    print("NEW IMAGE CAPTURE")
 
 if __name__ == 'main':
     while 1:

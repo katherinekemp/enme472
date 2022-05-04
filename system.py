@@ -10,6 +10,8 @@ import adafruit_mcp3xxx.mcp3008 as MCP
 from adafruit_mcp3xxx.analog_in import AnalogIn
 from picamera import PiCamera
 
+data_folder = "data"
+
 ## CAMERA
 '''
 camera = PiCamera()
@@ -115,7 +117,7 @@ def distance():
     return distance
 
 
-while (1):
+def run_system():
     current_time = datetime.now().time() # Get current time
 
     # Set lights to proper staet
@@ -154,8 +156,10 @@ while (1):
         water_threshold_counter = 0
         
     # Capture Image
-    #camera.capture('./plants.jpg')
+    #camera.capture(f'./{data_folder}/plants.jpg')
     #camera.stop_preview()
 
-    # Pause
-    sleep(1)
+if __name__ == 'main':
+    while 1:
+        run_system()
+        sleep(1)

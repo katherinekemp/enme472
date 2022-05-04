@@ -1,5 +1,6 @@
 import RPi.GPIO as GPIO          
 from time import sleep
+import time
 from datetime import datetime
 from datetime import timedelta
 import busio
@@ -10,9 +11,11 @@ from adafruit_mcp3xxx.analog_in import AnalogIn
 from picamera import PiCamera
 
 ## CAMERA
-#camera = PiCamera()
-#camera.start_preview()
+'''
+camera = PiCamera()
+camera.start_preview()
 sleep(5)
+'''
 
 ## MOTORS
 # Pins
@@ -66,10 +69,10 @@ NUTRIENT_THRESHOLD_YOUNG = 0.82 # Nutrient constant for young plants
 NUTRIENT_THRESHOLD_MATURE = 1.02 # Nutrient constant for fully grown plants
 last_nutrient_check = datetime.now().time()
 
-def time_plus(time, timedelta):
-    start = datetime.datetime(
+def time_plus(current_time, timedelta):
+    start = datetime(
         2000, 1, 1,
-        hour=time.hour, minute=time.minute, second=time.second)
+        hour=current_time.hour, minute=current_time.minute, second=current_time.second)
     end = start + timedelta
     return end.time()
 
@@ -81,13 +84,15 @@ GPIO.setup(GPIO_ECHO, GPIO.IN) #set GPIO direction (IN / OUT)
 WATER_LEVEL_LOW = 7 # cm
 WATER_LEVEL_THRESHOLD = 5 # cm
 SONAR_HEIGHT = 21 # cm
+water_low_counter = 0
+water_threshold_counter = 0
 
 def distance():
     # set Trigger to HIGH
     GPIO.output(GPIO_TRIGGER, True)
  
     # set Trigger after 0.01ms to LOW
-    time.sleep(0.00001)
+    sleep(0.00001)
     GPIO.output(GPIO_TRIGGER, False)
  
     StartTime = time.time()
@@ -111,33 +116,43 @@ def distance():
 
 
 while (1):
-    time = datetime.now().time() # Get current time
+    current_time = datetime.now().time() # Get current time
 
     # Set lights to proper staet
-    if light_flag == True and (time > MIDNIGHT or time < MORNING):
+    if light_flag == True and (current_time > MIDNIGHT or current_time < MORNING):
         GPIO.output(light,GPIO.LOW)
         light_flag = False
-    elif light_flag == False and not (time > MIDNIGHT or time < MORNING):
+    elif light_flag == False and not (current_time > MIDNIGHT or current_time < MORNING):
         GPIO.output(light,GPIO.HIGH)
         light_flag = True
 
     # Measure conductivity
     nutrient_level = chan.voltage
     print('ADC Voltage: ' + str(chan.voltage) + 'V')
-    if ((time.time() > time_plus(last_nutrient_check, timedelta(minutes=2))) and (nutrient_level < NUTRIENT_THRESHOLD_SEEDLING)):
+
+    if ((current_time > time_plus(last_nutrient_check, timedelta(minutes=2))) and (nutrient_level < NUTRIENT_THRESHOLD_SEEDLING)):
         n.start(40)
-        sleep(1)
+        sleep(.1)
         n.stop()
-        last_nutrient_check = time
+        last_nutrient_check = current_time
 
     # Get water level
-    water_level = SONAR_HEIGHT = distance()
+    water_level = SONAR_HEIGHT - distance()
     print (f"Measured Distance = {water_level} cm")
     if water_level < WATER_LEVEL_THRESHOLD:
-        print("CHANGE THE WATER")
+        water_threshold_counter += 1
+        if water_threshold_counter == 5:
+            print("CHANGE THE WATER")
     elif water_level < WATER_LEVEL_LOW:
-        print("WATER LEVEL LOW")
+        water_low_counter += 1
+        if water_low_counter == 5:
+            print("WATER LEVEL LOW")        
 
+    if water_level > WATER_LEVEL_LOW:
+        water_low_counter = 0
+    if water_level > WATER_LEVEL_THRESHOLD:
+        water_threshold_counter = 0
+        
     # Capture Image
     #camera.capture('./plants.jpg')
     #camera.stop_preview()

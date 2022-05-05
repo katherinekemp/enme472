@@ -4,12 +4,13 @@ import os
 from twilio.rest import Client
 
 def send_text(message):
+    print(message)
     # Find your Account SID and Auth Token at twilio.com/console
     # and set the environment variables. See http://twil.io/secure
-    #account_sid = os.getenv('account_sid')
-    #auth_token = os.environ.get('auth_token')
-    account_sid = os.environ['ACa78f536eae6f850d9501e8fe2c22794b']
-    auth_token = os.environ['86be2f06eb163703b04f7b7df83451b0']
+    account_sid = os.environ["TWILIO_ACCOUNT_SID"]
+    #print(account_sid)
+    auth_token = os.environ["TWILIO_AUTH_TOKEN"]
+    #print(auth_token)
     client = Client(account_sid, auth_token)
 
     message = client.messages \
@@ -21,5 +22,4 @@ def send_text(message):
 
     print(message.sid)
 
-if __name__ == "main":
-    send_text('The water level is 0')
+#send_text('The water level is 0')
